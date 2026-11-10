@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Lectura Bíblica">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Mi Lectura Bíblica Diaria</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>📖 Mi Lectura Bíblica</h1>
+            <p class="subtitle" id="current-date"></p>
+        </header>
+
+        <!-- Navegación de fecha -->
+        <nav class="date-nav">
+            <button id="btn-prev" class="nav-btn" aria-label="Día anterior">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <button id="btn-today" class="nav-btn today-btn">Hoy</button>
+            <button id="btn-next" class="nav-btn" aria-label="Día siguiente">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
+        </nav>
+
+        <!-- Calendario horizontal -->
+        <section class="calendar-section">
+            <div id="calendar-container" class="calendar-container">
+            </div>
+        </section>
+
+        <!-- Lecturas del día -->
+        <main class="readings-container">
+        </main>
+
+        <!-- Leyenda -->
+        <footer class="app-footer">
+            <div class="legend">
+                <div class="legend-item">
+                    <span class="legend-color block-1"></span>
+                    <span>Génesis - Cantares</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color block-2"></span>
+                    <span>Oseas - Malaquías</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color block-3"></span>
+                    <span>Mateo - Juan</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color block-4"></span>
+                    <span>Hechos - Apocalipsis</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color block-5"></span>
+                    <span>Isaías - Daniel</span>
+                </div>
+            </div>
+        </footer>
+
+        <!-- Respaldo de las lecturas marcadas -->
+        <details class="backup-section" id="backup-section">
+            <summary>💾 Respaldo de mis lecturas</summary>
+            <p class="backup-info" id="backup-info"></p>
+
+            <div class="backup-actions">
+                <button id="btn-export-file" class="backup-btn" type="button">Guardar archivo</button>
+                <button id="btn-export-copy" class="backup-btn" type="button">Copiar como texto</button>
+                <label for="import-file" class="backup-btn">Importar archivo</label>
+                <input type="file" id="import-file" accept=".json,application/json,text/plain" hidden>
+            </div>
+
+            <label class="backup-label" for="backup-text">O pega aquí el texto de un respaldo:</label>
+            <textarea id="backup-text" class="backup-text" rows="4" spellcheck="false"
+                autocapitalize="off" autocomplete="off"></textarea>
+            <button id="btn-import-text" class="backup-btn" type="button">Restaurar texto pegado</button>
+
+            <p class="backup-status" id="backup-status" role="status" aria-live="polite"></p>
+        </details>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

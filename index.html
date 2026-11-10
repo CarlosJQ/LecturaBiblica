@@ -49,29 +49,10 @@
 
         <!-- Leyenda -->
         <footer class="app-footer">
-            <div class="legend">
-                <div class="legend-item">
-                    <span class="legend-color block-1"></span>
-                    <span>Génesis - Cantares</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color block-2"></span>
-                    <span>Oseas - Malaquías</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color block-3"></span>
-                    <span>Mateo - Juan</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color block-4"></span>
-                    <span>Hechos - Apocalipsis</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color block-5"></span>
-                    <span>Isaías - Daniel</span>
-                </div>
-            </div>
+            <div class="legend" id="legend"></div>
         </footer>
+
+        <button id="btn-config" class="config-open-btn" type="button">⚙️ Configurar plan de lectura</button>
 
         <!-- Respaldo de las lecturas marcadas -->
         <details class="backup-section" id="backup-section">
@@ -94,7 +75,19 @@
         </details>
     </div>
 
+    <!-- Configurador del plan de lectura -->
+    <section class="config-panel" id="config-panel" hidden aria-label="Configurar plan de lectura">
+        <div class="config-inner">
+            <header class="config-header">
+                <h2>⚙️ Plan de lectura</h2>
+                <button id="btn-config-close" class="nav-btn" type="button">Cerrar</button>
+            </header>
+            <div id="config-body"></div>
+        </div>
+    </section>
+
     <script src="app.js"></script>
+    <script src="config.js"></script>
 </body>
 
 </html>

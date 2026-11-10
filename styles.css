@@ -17,6 +17,8 @@
     --block-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
     --block-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
     --block-6: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+    --block-7: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+    --block-8: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
 
     --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.3);
     --radius-sm: 8px;
@@ -414,6 +416,277 @@ body {
 
 .legend-color.block-6 {
     background: var(--block-6);
+}
+
+.block-indicator.block-7,
+.legend-color.block-7 {
+    background: var(--block-7);
+}
+
+.block-indicator.block-8,
+.legend-color.block-8 {
+    background: var(--block-8);
+}
+
+.no-readings {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    padding: 8px 4px;
+}
+
+/* ===== Configurador del plan ===== */
+.config-open-btn {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: none;
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+body.config-abierto {
+    overflow: hidden;
+}
+
+.config-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: var(--bg-primary);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.config-panel[hidden] {
+    display: none;
+}
+
+.config-inner {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 12px;
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.config-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.config-header h2 {
+    font-size: 1.15rem;
+    color: var(--accent-gold);
+}
+
+.config-panel select,
+.config-panel input[type="text"],
+.config-panel input[type="date"] {
+    min-height: 40px;
+    padding: 6px 10px;
+    background: var(--bg-primary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 16px; /* evita el zoom automático del iPhone */
+    max-width: 100%;
+}
+
+.config-panel label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.cfg-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.cfg-estado {
+    font-size: 0.75rem;
+    color: var(--accent-green);
+    padding-bottom: 10px;
+}
+
+.cfg-estado.sucio {
+    color: var(--accent-gold);
+}
+
+.cfg-hint {
+    margin: 8px 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.cfg-resumen,
+.cfg-sec,
+.cfg-preview {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.cfg-resumen p + p {
+    margin-top: 4px;
+}
+
+.cfg-resumen strong {
+    color: var(--text-primary);
+}
+
+.config-panel .aviso {
+    color: #fbbf24;
+}
+
+.config-panel .ok {
+    color: var(--accent-green);
+}
+
+.cfg-sec-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cfg-sec-head .legend-color {
+    width: 16px;
+    height: 16px;
+}
+
+.cfg-nombre {
+    flex: 1;
+    min-width: 0;
+}
+
+.cfg-del {
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.cfg-libros {
+    margin: 8px 0;
+    color: var(--text-primary);
+}
+
+.cfg-picker {
+    margin-top: 10px;
+}
+
+.cfg-picker-title {
+    margin: 8px 0 6px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.cfg-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.cfg-chip {
+    min-height: 34px;
+    padding: 4px 10px;
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.cfg-chip.on {
+    background: var(--accent-gold);
+    border-color: var(--accent-gold);
+    color: #000;
+    font-weight: 600;
+}
+
+.cfg-chip.usado {
+    opacity: 0.4;
+}
+
+.cfg-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.cfg-fields select {
+    width: 100%;
+}
+
+.cfg-info {
+    margin-top: 10px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.cfg-add {
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.cfg-preview ul {
+    list-style: none;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-primary);
+}
+
+.cfg-preview li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cfg-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cfg-save {
+    flex: 1;
+    min-height: 46px;
+    padding: 10px 16px;
+    background: var(--accent-gold);
+    border: none;
+    border-radius: var(--radius-md);
+    color: #000;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
 }
 
 /* ===== Respaldo ===== */

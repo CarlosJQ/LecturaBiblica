@@ -276,7 +276,7 @@ function getLecturaConPausa(bloque, fecha) {
     return agruparReferencias(referencias);
 }
 
-function getLecturasDelDia(fecha) {
+function getLecturasLegado(fecha) {
     const lecturas = [];
 
     for (const bloque of BLOQUES) {
@@ -389,6 +389,279 @@ function getNombreDiaRelativo(offset, fechaSeleccionada) {
     }
 }
 
+// ===== PLANES CONFIGURABLES =====
+// Un plan guardado para un año reemplaza al plan de siempre desde ese año en adelante.
+// Mientras no haya un plan guardado, las lecturas se calculan como hasta ahora.
+
+const PLANES_KEY = 'lecturaBiblica_planes';
+const IDX_SALMOS = 18;
+const TOTAL_COLORES = 8;
+
+const FRECUENCIAS = [
+    ['a1', '1 vez al año'],
+    ['a2', '2 veces al año (cada semestre)'],
+    ['a3', '3 veces al año'],
+    ['a4', '4 veces al año (cada trimestre)'],
+    ['a5', '5 veces al año'],
+    ['a6', '6 veces al año'],
+    ['a12', '12 veces al año (cada mes)'],
+    ['p2', '1 vez cada 2 años'],
+    ['p3', '1 vez cada 3 años']
+];
+
+function esc(texto) {
+    return String(texto).replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+}
+
+let planesCache = null;
+
+function getPlanes() {
+    if (planesCache) return planesCache;
+    try {
+        const data = localStorage.getItem(PLANES_KEY);
+        planesCache = data ? JSON.parse(data) : {};
+    } catch (e) {
+        planesCache = {};
+    }
+    if (!planesCache || typeof planesCache !== 'object' || Array.isArray(planesCache)) planesCache = {};
+    return planesCache;
+}
+
+function guardarPlanes(planes) {
+    planesCache = planes;
+    localStorage.setItem(PLANES_KEY, JSON.stringify(planes));
+}
+
+function planValido(plan) {
+    return !!plan && Number.isInteger(plan.inicio) && Array.isArray(plan.secciones) &&
+        plan.secciones.every(sec =>
+            sec && Number.isInteger(sec.id) && Array.isArray(sec.libros) &&
+            sec.libros.every(i => Number.isInteger(i) && i >= 0 && i < BIBLIA.length) &&
+            FRECUENCIAS.some(f => f[0] === sec.frecuencia) &&
+            (sec.ritmo === 'auto' || sec.ritmo === 'parejo' || (Number.isInteger(sec.ritmo) && sec.ritmo >= 1 && sec.ritmo <= 10))
+        );
+}
+
+// Plan vigente para una fecha: el guardado con el año de inicio más reciente
+function getPlanPara(fecha) {
+    const año = fecha.getFullYear();
+    const planes = getPlanes();
+    let mejor = null;
+    for (const clave of Object.keys(planes)) {
+        const inicio = Number(clave);
+        if (inicio <= año && (mejor === null || inicio > mejor)) mejor = inicio;
+    }
+    return mejor === null ? null : planes[mejor];
+}
+
+function rangoLibros(desde, hasta) {
+    const lista = [];
+    for (let i = desde; i <= hasta; i++) lista.push(i);
+    return lista;
+}
+
+// Punto de partida del configurador: lo más parecido al plan de siempre
+function planPredeterminado(año) {
+    return {
+        inicio: año,
+        nextId: 6,
+        secciones: [
+            { id: 1, color: 1, nombre: '', libros: rangoLibros(0, 21), frecuencia: 'a1', ritmo: 2, salmo119: 'entero' },
+            { id: 2, color: 2, nombre: '', libros: rangoLibros(27, 38), frecuencia: 'a5', ritmo: 'auto', salmo119: 'entero' },
+            { id: 3, color: 3, nombre: '', libros: rangoLibros(39, 42), frecuencia: 'a4', ritmo: 'auto', salmo119: 'entero' },
+            { id: 4, color: 4, nombre: '', libros: rangoLibros(43, 65), frecuencia: 'a2', ritmo: 'auto', salmo119: 'entero' },
+            { id: 5, color: 5, nombre: '', libros: rangoLibros(22, 26), frecuencia: 'a2', ritmo: 'auto', salmo119: 'entero' }
+        ]
+    };
+}
+
+// Número de día absoluto (sin problemas de cambio de hora)
+function diaNum(fecha) {
+    return Math.round(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()) / 86400000);
+}
+
+function sumarDias(fecha, dias) {
+    return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + dias);
+}
+
+// Vueltas de un año: alineadas a meses si se puede (2, 3, 4, 6, 12); si no, en partes iguales
+function rondasDelAño(vueltas, año) {
+    const rondas = [];
+    const inicioAño = new Date(año, 0, 1);
+    const finAño = new Date(año + 1, 0, 1);
+
+    if (12 % vueltas === 0) {
+        const meses = 12 / vueltas;
+        for (let i = 0; i < vueltas; i++) {
+            const inicio = new Date(año, i * meses, 1);
+            const fin = i === vueltas - 1 ? finAño : new Date(año, (i + 1) * meses, 1);
+            rondas.push({ inicio, dias: diaNum(fin) - diaNum(inicio) });
+        }
+    } else {
+        const diasAño = diaNum(finAño) - diaNum(inicioAño);
+        for (let i = 0; i < vueltas; i++) {
+            const a = Math.floor(i * diasAño / vueltas);
+            const b = Math.floor((i + 1) * diasAño / vueltas);
+            rondas.push({ inicio: sumarDias(inicioAño, a), dias: b - a });
+        }
+    }
+    return rondas;
+}
+
+// Vueltas que se muestran en el resumen: las del primer año, o la vuelta de varios años
+function rondasDeSeccion(sec, plan) {
+    const numero = Number(sec.frecuencia.slice(1));
+    if (sec.frecuencia[0] === 'p') {
+        const inicio = new Date(plan.inicio, 0, 1);
+        return [{ inicio, dias: diaNum(new Date(plan.inicio + numero, 0, 1)) - diaNum(inicio) }];
+    }
+    return rondasDelAño(numero, plan.inicio);
+}
+
+// Vuelta en la que cae una fecha, y qué día de esa vuelta es (0 = primero)
+function getRonda(sec, plan, fecha) {
+    const numero = Number(sec.frecuencia.slice(1));
+    const año = fecha.getFullYear();
+
+    if (sec.frecuencia[0] === 'p') {
+        const n = Math.floor((año - plan.inicio) / numero);
+        const inicio = new Date(plan.inicio + n * numero, 0, 1);
+        const fin = new Date(plan.inicio + (n + 1) * numero, 0, 1);
+        return { inicio, dias: diaNum(fin) - diaNum(inicio), dia: diaNum(fecha) - diaNum(inicio) };
+    }
+
+    const hoy = diaNum(fecha);
+    for (const ronda of rondasDelAño(numero, año)) {
+        const dia = hoy - diaNum(ronda.inicio);
+        if (dia >= 0 && dia < ronda.dias) return { inicio: ronda.inicio, dias: ronda.dias, dia };
+    }
+    return null;
+}
+
+// Lista ordenada de lecturas de una sección (capítulos, o porciones del Salmo 119)
+const unidadesCache = new Map();
+
+function unidadesDeSeccion(sec) {
+    const clave = sec.libros.join(',') + '|' + (sec.salmo119 || 'entero');
+    if (unidadesCache.has(clave)) return unidadesCache.get(clave);
+
+    const unidades = [];
+    const alFinal = [];
+    const libros = [...new Set(sec.libros)].sort((a, b) => a - b);
+
+    for (const idx of libros) {
+        const libro = BIBLIA[idx];
+        if (!libro) continue;
+        for (let cap = 1; cap <= libro.capitulos; cap++) {
+            const partir = idx === IDX_SALMOS && cap === 119 && sec.salmo119 && sec.salmo119 !== 'entero';
+            if (partir) {
+                const destino = sec.salmo119 === 'final' ? alFinal : unidades;
+                for (let p = 0; p < 22; p++) {
+                    destino.push({ libro: libro.nombreEs, etiqueta: `${libro.nombreEs} 119:${p * 8 + 1}-${p * 8 + 8}` });
+                }
+            } else {
+                unidades.push({ libro: libro.nombreEs, capitulo: cap });
+            }
+        }
+    }
+
+    const todas = unidades.concat(alFinal);
+    unidadesCache.set(clave, todas);
+    return todas;
+}
+
+// Qué lecturas tocan un día: al ritmo pedido si alcanza; si faltan días, repartidas parejo
+function rangoDelDia(total, dia, dias, ritmo) {
+    const porDia = ritmo === 'auto' ? 1 : Number(ritmo);
+    if (ritmo !== 'parejo' && porDia * dias >= total) {
+        return [Math.min(total, dia * porDia), Math.min(total, dia * porDia + porDia)];
+    }
+    return [Math.floor(dia * total / dias), Math.floor((dia + 1) * total / dias)];
+}
+
+function textosDeUnidades(unidades) {
+    const textos = [];
+    let i = 0;
+    while (i < unidades.length) {
+        const u = unidades[i];
+        if (u.etiqueta) {
+            textos.push(u.etiqueta);
+            i++;
+            continue;
+        }
+        let j = i;
+        while (j + 1 < unidades.length && !unidades[j + 1].etiqueta &&
+            unidades[j + 1].libro === u.libro && unidades[j + 1].capitulo === unidades[j].capitulo + 1) {
+            j++;
+        }
+        textos.push(j === i ? `${u.libro} ${u.capitulo}` : `${u.libro} ${u.capitulo}-${unidades[j].capitulo}`);
+        i = j + 1;
+    }
+    return textos;
+}
+
+function describirLibros(libros) {
+    const orden = [...new Set(libros)].sort((a, b) => a - b);
+    const tramos = [];
+    let i = 0;
+    while (i < orden.length) {
+        let j = i;
+        while (j + 1 < orden.length && orden[j + 1] === orden[j] + 1) j++;
+        tramos.push(i === j ? BIBLIA[orden[i]].nombreEs : `${BIBLIA[orden[i]].nombreEs} - ${BIBLIA[orden[j]].nombreEs}`);
+        i = j + 1;
+    }
+    return tramos.join(', ');
+}
+
+function nombreSeccion(sec) {
+    return (sec.nombre && sec.nombre.trim()) || describirLibros(sec.libros) || 'Sección sin libros';
+}
+
+function getLecturasConPlan(plan, fecha) {
+    const lecturas = [];
+    for (const sec of plan.secciones) {
+        const unidades = unidadesDeSeccion(sec);
+        if (unidades.length === 0) continue;
+
+        const ronda = getRonda(sec, plan, fecha);
+        if (!ronda) continue;
+
+        const [a, b] = rangoDelDia(unidades.length, ronda.dia, ronda.dias, sec.ritmo);
+        if (b <= a) continue; // día libre de esta sección
+
+        const referencias = textosDeUnidades(unidades.slice(a, b));
+        lecturas.push({
+            bloqueId: sec.id,
+            color: sec.color || 1,
+            bloqueNombre: nombreSeccion(sec),
+            bloqueDescripcion: nombreSeccion(sec),
+            referencias,
+            textoCompleto: referencias.join(', '),
+            cantidad: b - a
+        });
+    }
+    return lecturas;
+}
+
+function getLecturasDelDia(fecha) {
+    const plan = getPlanPara(fecha);
+    if (plan) return getLecturasConPlan(plan, fecha);
+    return getLecturasLegado(fecha).map(lectura => ({ ...lectura, color: lectura.bloqueId }));
+}
+
+// Secciones vigentes en una fecha (para la leyenda de colores)
+function getLeyendaPara(fecha) {
+    const plan = getPlanPara(fecha);
+    if (plan) {
+        return plan.secciones
+            .filter(sec => sec.libros.length > 0)
+            .map(sec => ({ color: sec.color || 1, texto: nombreSeccion(sec) }));
+    }
+    return BLOQUES.map(bloque => ({ color: bloque.id, texto: bloque.descripcion }));
+}
+
 // ===== ESTADO DE LA APLICACIÓN =====
 let fechaSeleccionada = new Date();
 fechaSeleccionada.setHours(0, 0, 0, 0);
@@ -418,10 +691,10 @@ function crearTarjetaDia(fecha) {
                            ${completada ? 'checked' : ''}>
                     <span class="checkmark"></span>
                 </label>
-                <div class="block-indicator block-${lectura.bloqueId}"></div>
+                <div class="block-indicator block-${lectura.color}"></div>
                 <div class="reading-content">
-                    <div class="reading-reference">${lectura.textoCompleto}</div>
-                    <div class="reading-block-name">${lectura.bloqueDescripcion}</div>
+                    <div class="reading-reference">${esc(lectura.textoCompleto)}</div>
+                    <div class="reading-block-name">${esc(lectura.bloqueDescripcion)}</div>
                 </div>
             </div>
         `;
@@ -433,7 +706,7 @@ function crearTarjetaDia(fecha) {
             <div class="day-date">${formatearFecha(fecha)}</div>
         </div>
         <div class="readings-list">
-            ${readingsHTML}
+            ${readingsHTML || '<p class="no-readings">No hay lecturas programadas para este día.</p>'}
         </div>
     `;
 
@@ -463,6 +736,16 @@ function renderizarLecturas() {
 
     const tarjeta = crearTarjetaDia(fechaSeleccionada);
     container.appendChild(tarjeta);
+    renderizarLeyenda();
+}
+
+function renderizarLeyenda() {
+    document.getElementById('legend').innerHTML = getLeyendaPara(fechaSeleccionada).map(item => `
+        <div class="legend-item">
+            <span class="legend-color block-${item.color}"></span>
+            <span>${esc(item.texto)}</span>
+        </div>
+    `).join('');
 }
 
 function actualizarFechaHeader() {
@@ -585,7 +868,8 @@ function crearTextoRespaldo() {
         app: 'lecturaBiblica',
         version: 1,
         exportado: new Date().toISOString(),
-        completadas: getCompletadas()
+        completadas: getCompletadas(),
+        planes: getPlanes()
     });
 }
 
@@ -664,8 +948,22 @@ function importarRespaldo(texto) {
         return;
     }
 
+    // Planes configurados: se agregan solo los años que aquí no existen
+    let planesNuevos = 0;
+    if (datos.planes && typeof datos.planes === 'object') {
+        const planes = { ...getPlanes() };
+        for (const año of Object.keys(datos.planes)) {
+            const plan = datos.planes[año];
+            if (/^\d{4}$/.test(año) && !planes[año] && planValido(plan) && plan.inicio === Number(año)) {
+                planes[año] = plan;
+                planesNuevos++;
+            }
+        }
+        if (planesNuevos > 0) guardarPlanes(planes);
+    }
+
     const claves = Object.keys(origen).filter(clave => CLAVE_VALIDA.test(clave) && origen[clave]);
-    if (claves.length === 0) {
+    if (claves.length === 0 && planesNuevos === 0) {
         mostrarEstadoRespaldo('El respaldo no contiene lecturas marcadas.', true);
         return;
     }
@@ -683,7 +981,8 @@ function importarRespaldo(texto) {
     actualizarInfoRespaldo();
     generarCalendario();
     renderizarLecturas();
-    mostrarEstadoRespaldo(`Listo: el respaldo tenía ${claves.length} lectura(s); se agregaron ${nuevas} nueva(s).`);
+    mostrarEstadoRespaldo(`Listo: el respaldo tenía ${claves.length} lectura(s); se agregaron ${nuevas} nueva(s)` +
+        (planesNuevos > 0 ? ` y ${planesNuevos} plan(es) de lectura.` : '.'));
 }
 
 function iniciarRespaldo() {
@@ -726,6 +1025,7 @@ document.addEventListener('DOMContentLoaded', () => {
     generarCalendario();
     renderizarLecturas();
     iniciarRespaldo();
+    iniciarConfigurador();
 
     document.getElementById('btn-prev').addEventListener('click', () => cambiarDia(-1));
     document.getElementById('btn-next').addEventListener('click', () => cambiarDia(1));

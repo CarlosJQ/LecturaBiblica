@@ -5,8 +5,8 @@
  */
 
 const FOTOS_DB = 'lecturaBiblica_fotos';
-const FOTO_LADO_MAX = 1800;   // píxeles del lado más largo: suficiente para leer una página
-const FOTO_CALIDAD = 0.8;
+const FOTO_LADO_MAX = 3000;   // píxeles del lado más largo: nítido incluso al ampliar
+const FOTO_CALIDAD = 0.9;
 
 let fotosDB = null;
 const conteoFotos = new Map(); // libroId -> cantidad de fotos (para mostrar el indicador 📷)
@@ -82,7 +82,7 @@ function cargarConteoFotos() {
 
 // ===== Compresión =====
 
-// Reduce la foto a un tamaño cómodo para leer; así ocupa unas 10 veces menos
+// Reduce un poco la foto para que ocupe menos sin perder nitidez al leer
 async function comprimirImagen(archivo) {
     const url = URL.createObjectURL(archivo);
     try {
@@ -218,6 +218,70 @@ async function ofrecerBorrarFotos(libro) {
 }
 
 // ===== Visor a pantalla completa =====
+// La foto se ajusta entera al espacio disponible (zoom 1) y se amplía pellizcando
+// con dos dedos, con doble toque o con el botón. Con un dedo se desplaza.
+
+const ZOOM_MAX = 6;
+const ZOOM_BOTON = 2.5;
+let zoomVisor = 1;
+
+function medidasVisor() {
+    const lienzo = document.getElementById('visor-lienzo');
+    const imagen = document.getElementById('visor-img');
+    const anchoNatural = imagen.naturalWidth || 1;
+    const altoNatural = imagen.naturalHeight || 1;
+    const ajuste = Math.min(lienzo.clientWidth / anchoNatural, lienzo.clientHeight / altoNatural);
+    return { lienzo, imagen, anchoBase: anchoNatural * ajuste, altoBase: altoNatural * ajuste };
+}
+
+// Punto de la foto (de 0 a 1 en cada eje) que está bajo el punto (x, y) del lienzo
+function focoVisor(x, y) {
+    const { lienzo, imagen, anchoBase, altoBase } = medidasVisor();
+    const ancho = imagen.offsetWidth || anchoBase;
+    const alto = imagen.offsetHeight || altoBase;
+    const margenX = parseFloat(imagen.style.marginLeft) || 0;
+    const margenY = parseFloat(imagen.style.marginTop) || 0;
+    return {
+        fx: (lienzo.scrollLeft + x - margenX) / ancho,
+        fy: (lienzo.scrollTop + y - margenY) / alto
+    };
+}
+
+// Aplica un zoom dejando el punto "foco" de la foto bajo el punto (x, y) del lienzo
+function aplicarZoomVisor(nuevoZoom, x, y, foco) {
+    const { lienzo, imagen, anchoBase, altoBase } = medidasVisor();
+    const zoom = Math.min(ZOOM_MAX, Math.max(1, nuevoZoom));
+    const px = x === undefined ? lienzo.clientWidth / 2 : x;
+    const py = y === undefined ? lienzo.clientHeight / 2 : y;
+    const { fx, fy } = foco || focoVisor(px, py);
+
+    const ancho = anchoBase * zoom;
+    const alto = altoBase * zoom;
+    const margenX = Math.max(0, (lienzo.clientWidth - ancho) / 2);
+    const margenY = Math.max(0, (lienzo.clientHeight - alto) / 2);
+    imagen.style.width = `${ancho}px`;
+    imagen.style.height = `${alto}px`;
+    imagen.style.marginLeft = `${margenX}px`;
+    imagen.style.marginTop = `${margenY}px`;
+
+    lienzo.scrollLeft = fx * ancho + margenX - px;
+    lienzo.scrollTop = fy * alto + margenY - py;
+
+    zoomVisor = zoom;
+    document.getElementById('visor-zoom').textContent = zoom > 1.05 ? 'Ajustar' : 'Ampliar';
+}
+
+function ajustarFotoVisor() {
+    const { lienzo, imagen } = medidasVisor();
+    imagen.style.width = '';
+    imagen.style.height = '';
+    imagen.style.marginLeft = '0px';
+    imagen.style.marginTop = '0px';
+    lienzo.scrollLeft = 0;
+    lienzo.scrollTop = 0;
+    zoomVisor = 1;
+    aplicarZoomVisor(1);
+}
 
 function mostrarFotoVisor() {
     const foto = visor.fotos[visor.indice];
@@ -225,13 +289,13 @@ function mostrarFotoVisor() {
     visor.url = URL.createObjectURL(foto.blob);
 
     const imagen = document.getElementById('visor-img');
-    const lienzo = document.getElementById('visor-lienzo');
+    imagen.style.visibility = 'hidden';
+    imagen.onload = () => {
+        ajustarFotoVisor();
+        imagen.style.visibility = '';
+    };
     imagen.src = visor.url;
-    lienzo.classList.remove('ampliado');
-    lienzo.scrollTop = 0;
-    lienzo.scrollLeft = 0;
 
-    document.getElementById('visor-zoom').textContent = 'Ampliar';
     document.getElementById('visor-pos').textContent = `${visor.indice + 1} de ${visor.fotos.length}`;
     document.getElementById('visor-ant').disabled = visor.indice === 0;
     document.getElementById('visor-sig').disabled = visor.indice === visor.fotos.length - 1;
@@ -262,10 +326,9 @@ function moverVisor(paso) {
     mostrarFotoVisor();
 }
 
-function alternarZoomVisor() {
-    const lienzo = document.getElementById('visor-lienzo');
-    const ampliado = lienzo.classList.toggle('ampliado');
-    document.getElementById('visor-zoom').textContent = ampliado ? 'Ajustar' : 'Ampliar';
+function alternarZoomVisor(x, y) {
+    if (zoomVisor > 1.05) ajustarFotoVisor();
+    else aplicarZoomVisor(ZOOM_BOTON, x, y);
 }
 
 async function borrarFotoVisor() {
@@ -282,6 +345,84 @@ async function borrarFotoVisor() {
     mostrarFotoVisor();
 }
 
+function iniciarGestosVisor() {
+    const lienzo = document.getElementById('visor-lienzo');
+    let pellizco = null;     // { distancia, zoom } al empezar a pellizcar
+    let toque = null;        // { x, y, t } de un toque con un dedo
+    let ultimoToque = null;  // para detectar el doble toque
+
+    const posicion = (t) => {
+        const caja = lienzo.getBoundingClientRect();
+        return { x: t.clientX - caja.left, y: t.clientY - caja.top };
+    };
+    const distancia = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+
+    lienzo.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            const a = posicion(e.touches[0]);
+            const b = posicion(e.touches[1]);
+            pellizco = {
+                distancia: distancia(e.touches[0], e.touches[1]),
+                zoom: zoomVisor,
+                foco: focoVisor((a.x + b.x) / 2, (a.y + b.y) / 2) // lo que quedó entre los dedos
+            };
+            toque = null;
+        } else if (e.touches.length === 1) {
+            toque = { ...posicion(e.touches[0]), t: Date.now() };
+        }
+    }, { passive: true });
+
+    lienzo.addEventListener('touchmove', (e) => {
+        if (e.touches.length !== 2 || !pellizco) return;
+        e.preventDefault(); // el zoom lo maneja la app, no el navegador
+        const a = posicion(e.touches[0]);
+        const b = posicion(e.touches[1]);
+        const factor = distancia(e.touches[0], e.touches[1]) / pellizco.distancia;
+        aplicarZoomVisor(pellizco.zoom * factor, (a.x + b.x) / 2, (a.y + b.y) / 2, pellizco.foco);
+    }, { passive: false });
+
+    lienzo.addEventListener('touchend', (e) => {
+        if (pellizco) {
+            if (e.touches.length < 2) pellizco = null;
+            if (zoomVisor < 1.05) ajustarFotoVisor();
+            toque = null;
+            return;
+        }
+        if (!toque || e.changedTouches.length !== 1) return;
+
+        const fin = posicion(e.changedTouches[0]);
+        const dx = fin.x - toque.x;
+        const dy = fin.y - toque.y;
+        const ahora = Date.now();
+        const fueToque = Math.abs(dx) < 12 && Math.abs(dy) < 12 && ahora - toque.t < 300;
+
+        if (fueToque) {
+            // Doble toque: amplía en ese punto, o vuelve a ajustar
+            if (ultimoToque && ahora - ultimoToque.t < 320 &&
+                Math.abs(fin.x - ultimoToque.x) < 30 && Math.abs(fin.y - ultimoToque.y) < 30) {
+                e.preventDefault();
+                alternarZoomVisor(fin.x, fin.y);
+                ultimoToque = null;
+            } else {
+                ultimoToque = { x: fin.x, y: fin.y, t: ahora };
+            }
+        } else if (zoomVisor <= 1.05 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            // Deslizar hacia los lados pasa de página (solo con la foto sin ampliar)
+            moverVisor(dx < 0 ? 1 : -1);
+        }
+        toque = null;
+    }, { passive: false });
+
+    // Evita que Safari amplíe la página entera con el gesto
+    ['gesturestart', 'gesturechange'].forEach(nombre =>
+        lienzo.addEventListener(nombre, (e) => e.preventDefault()));
+
+    // Al girar el teléfono, vuelve a encajar la foto
+    window.addEventListener('resize', () => {
+        if (visor) ajustarFotoVisor();
+    });
+}
+
 function iniciarFotos() {
     const cuerpo = document.getElementById('libro-body');
     cuerpo.addEventListener('change', alElegirFotos);
@@ -290,25 +431,9 @@ function iniciarFotos() {
     document.getElementById('visor-cerrar').addEventListener('click', cerrarVisor);
     document.getElementById('visor-ant').addEventListener('click', () => moverVisor(-1));
     document.getElementById('visor-sig').addEventListener('click', () => moverVisor(1));
-    document.getElementById('visor-zoom').addEventListener('click', alternarZoomVisor);
+    document.getElementById('visor-zoom').addEventListener('click', () => alternarZoomVisor());
     document.getElementById('visor-borrar').addEventListener('click', borrarFotoVisor);
-
-    // Deslizar hacia los lados para pasar de página (solo con la foto sin ampliar)
-    const lienzo = document.getElementById('visor-lienzo');
-    let inicioX = null;
-    let inicioY = null;
-    lienzo.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1) { inicioX = null; return; }
-        inicioX = e.touches[0].clientX;
-        inicioY = e.touches[0].clientY;
-    }, { passive: true });
-    lienzo.addEventListener('touchend', (e) => {
-        if (inicioX === null || lienzo.classList.contains('ampliado')) return;
-        const dx = e.changedTouches[0].clientX - inicioX;
-        const dy = e.changedTouches[0].clientY - inicioY;
-        inicioX = null;
-        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) moverVisor(dx < 0 ? 1 : -1);
-    }, { passive: true });
+    iniciarGestosVisor();
 
     if (!window.indexedDB) return;
     cargarConteoFotos().then(renderizarLibros).catch(() => { });

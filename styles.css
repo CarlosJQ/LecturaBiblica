@@ -1023,25 +1023,16 @@ footer.visor-barra {
     min-height: 0;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
-    display: flex;
-    align-items: flex-start;
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y; /* el pellizco lo maneja la app */
 }
 
 .visor-lienzo img {
     display: block;
-    width: 100%;
-    height: auto;
-    margin: auto;
-}
-
-.visor-lienzo.ampliado {
-    display: block;
-}
-
-.visor-lienzo.ampliado img {
-    width: 220%;
     max-width: none;
-    margin: 0;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 /* ===== Respaldo ===== */

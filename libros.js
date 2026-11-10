@@ -35,8 +35,10 @@ function getDatosLibros() {
     if (!datos || !Array.isArray(datos.libros) || !Array.isArray(datos.registro)) {
         datos = { version: 1, nextId: 1, libros: [], registro: [] };
     }
+    if (!Array.isArray(datos.notas)) datos.notas = [];
     if (!datos.nextId) {
-        datos.nextId = Math.max(0, ...datos.libros.map(l => l.id), ...datos.registro.map(r => r.id)) + 1;
+        datos.nextId = Math.max(0, ...datos.libros.map(l => l.id), ...datos.registro.map(r => r.id),
+            ...datos.notas.map(n => n.id)) + 1;
     }
     librosCache = datos;
     return datos;
@@ -104,6 +106,21 @@ function importarLibros(entrada) {
             hasta: entero(r.hasta, entero(r.desde, 1)),
             completo: r.completo !== false,
             nota: String(r.nota || '')
+        });
+    }
+
+    // Notas de los libros nuevos. Los audios no viajan en el respaldo: queda solo el texto.
+    for (const n of Array.isArray(entrada.notas) ? entrada.notas : []) {
+        if (!n || !nuevosIds.has(n.libroId) || !/^\d{4}-\d{2}-\d{2}$/.test(n.fecha)) continue;
+        const texto = String(n.texto || '').trim();
+        if (!texto && !n.audio) continue;
+        datos.notas.push({
+            id: datos.nextId++,
+            libroId: nuevosIds.get(n.libroId),
+            fecha: n.fecha,
+            ref: String(n.ref || ''),
+            texto: texto || '(audio que no venía en el respaldo)',
+            audio: null
         });
     }
 
@@ -201,7 +218,7 @@ function semanaHTML() {
             }
             return `
                 <button type="button" class="lib-item" data-libro="${libro.id}">
-                    <span class="lib-titulo">${esc(libro.titulo)}${indicadorFotos(libro.id)}</span>
+                    <span class="lib-titulo">${esc(libro.titulo)}${indicadorFotos(libro.id)}${indicadorNotas(libro.id)}</span>
                     <span class="lib-autor">${esc(libro.autor)}</span>
                     ${estado}
                 </button>`;
@@ -244,7 +261,7 @@ function listaBibliotecaHTML() {
         if (avance) detalles.push(avance);
         return `
             <button type="button" class="lib-item" data-libro="${libro.id}">
-                <span class="lib-titulo">${esc(libro.titulo)}${indicadorFotos(libro.id)}</span>
+                <span class="lib-titulo">${esc(libro.titulo)}${indicadorFotos(libro.id)}${indicadorNotas(libro.id)}</span>
                 <span class="lib-autor">${esc(libro.autor)}</span>
                 ${detalles.length ? `<span class="lib-toca">${esc(detalles.join(' · '))}</span>` : ''}
             </button>`;
@@ -325,6 +342,8 @@ function panelLecturaHTML(libro) {
 
         <div class="cfg-sec" id="fotos-seccion"></div>
 
+        <div class="cfg-sec" id="notas-seccion"></div>
+
         <div class="cfg-sec">
             <h3 class="lib-h3">Historial</h3>
             ${filas ? `<ul class="lib-historial">${filas}</ul>` : '<p class="lib-vacio">Todavía no hay lecturas registradas.</p>'}
@@ -376,7 +395,10 @@ function renderizarPanelLibro() {
     document.getElementById('libro-panel-titulo').textContent = libro ? libro.titulo : 'Nuevo libro';
     document.getElementById('libro-body').innerHTML =
         panelLibro.modo === 'lectura' && libro ? panelLecturaHTML(libro) : panelEditarHTML(libro);
-    if (panelLibro.modo === 'lectura' && libro) renderizarFotos(libro.id);
+    if (panelLibro.modo === 'lectura' && libro) {
+        renderizarFotos(libro.id);
+        renderizarNotas(libro.id);
+    }
 }
 
 function abrirPanelLibro(id) {
@@ -391,6 +413,7 @@ function abrirPanelLibro(id) {
 }
 
 function cerrarPanelLibro() {
+    alCerrarFichaNotas();
     document.getElementById('libro-panel').hidden = true;
     document.body.classList.remove('config-abierto');
     panelLibro = null;
@@ -518,6 +541,8 @@ function alHacerClicPanelLibro(e) {
             datos.registro = datos.registro.filter(r => r.libroId !== libro.id);
             guardarDatosLibros();
             borrarFotosDeLibro(libro.id).catch(() => { });
+            borrarNotasDeLibro(libro.id);
+            guardarDatosLibros();
             cerrarPanelLibro();
             return;
         }
@@ -578,4 +603,5 @@ function iniciarLibros() {
     } catch (e) { }
     mostrarVista(vistaInicial);
     iniciarFotos();
+    iniciarNotas();
 }

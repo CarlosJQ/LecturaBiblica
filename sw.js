@@ -1,5 +1,5 @@
 // Permite abrir la app sin conexión. Con internet siempre trae la versión más nueva.
-const CACHE_NAME = 'lectura-biblica-v5';
+const CACHE_NAME = 'lectura-biblica-v6';
 const APP_SHELL = [
     './',
     './index.html',
@@ -8,6 +8,7 @@ const APP_SHELL = [
     './config.js',
     './libros.js',
     './fotos.js',
+    './notas.js',
     './manifest.json',
     './icon-192.png',
     './icon-512.png',

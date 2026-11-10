@@ -18,10 +18,14 @@ let visor = null;              // { libroId, fotos, indice, url }
 function abrirFotosDB() {
     if (!fotosDB) {
         fotosDB = new Promise((resolver, rechazar) => {
-            const pedido = indexedDB.open(FOTOS_DB, 1);
+            const pedido = indexedDB.open(FOTOS_DB, 2);
             pedido.onupgradeneeded = () => {
-                const almacen = pedido.result.createObjectStore('fotos', { keyPath: 'id', autoIncrement: true });
-                almacen.createIndex('libroId', 'libroId');
+                // 'fotos' existe desde la versión 1; 'audios' (notas de voz) desde la 2
+                for (const nombre of ['fotos', 'audios']) {
+                    if (pedido.result.objectStoreNames.contains(nombre)) continue;
+                    const almacen = pedido.result.createObjectStore(nombre, { keyPath: 'id', autoIncrement: true });
+                    almacen.createIndex('libroId', 'libroId');
+                }
             };
             pedido.onsuccess = () => resolver(pedido.result);
             pedido.onerror = () => rechazar(pedido.error);
@@ -31,10 +35,10 @@ function abrirFotosDB() {
 }
 
 // Ejecuta una operación sobre el almacén y espera a que la transacción termine
-function conAlmacen(modo, operacion) {
+function conAlmacen(modo, operacion, nombre = 'fotos') {
     return abrirFotosDB().then(db => new Promise((resolver, rechazar) => {
-        const transaccion = db.transaction('fotos', modo);
-        const pedido = operacion(transaccion.objectStore('fotos'));
+        const transaccion = db.transaction(nombre, modo);
+        const pedido = operacion(transaccion.objectStore(nombre));
         transaccion.oncomplete = () => resolver(pedido ? pedido.result : undefined);
         transaccion.onerror = () => rechazar(transaccion.error);
         transaccion.onabort = () => rechazar(transaccion.error);

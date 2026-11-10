@@ -1035,6 +1035,83 @@ footer.visor-barra {
     -webkit-touch-callout: none;
 }
 
+/* ===== Notas y audios ===== */
+.nota-texto {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 8px 10px;
+    background: var(--bg-primary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1.4;
+    resize: vertical;
+}
+
+#notas-seccion input[type="text"] {
+    width: 100%;
+}
+
+.backup-btn.nota-principal {
+    background: var(--accent-gold);
+    border-color: var(--accent-gold);
+    color: #000;
+    font-weight: 600;
+}
+
+.nota-grabando {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+    color: #f87171;
+    font-size: 0.9rem;
+}
+
+.nota-lista {
+    list-style: none;
+    margin-bottom: 12px;
+}
+
+.nota {
+    padding: 12px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nota .backup-actions {
+    margin-bottom: 0;
+}
+
+.nota-cabecera {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.nota-cuerpo {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin-bottom: 10px;
+}
+
+.nota-audio {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.nota-audio audio {
+    width: 100%;
+    height: 40px;
+}
+
 /* ===== Respaldo ===== */
 .backup-section {
     margin-top: 12px;

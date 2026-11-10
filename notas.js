@@ -11,6 +11,7 @@ let mensajeNotas = '';
 let mensajeNotasError = false;
 let grabacion = null;        // { recorder, stream, trozos, inicio, reloj, libroId, ref }
 let audioSonando = null;     // { notaId, url }
+let guardandoAudios = 0;     // audios a medio guardar (para no limpiarlos por error)
 
 // ===== Datos =====
 
@@ -44,9 +45,33 @@ function borrarAudio(id) {
 // Al eliminar un libro: borra sus notas y sus audios
 function borrarNotasDeLibro(libroId) {
     const datos = getDatosLibros();
-    const audios = getNotas().filter(n => n.libroId === libroId && n.audio).map(n => n.audio.id);
+    const audios = getNotas()
+        .filter(n => n.libroId === libroId && n.audio && n.audio.equipo === getEquipo().id)
+        .map(n => n.audio.id);
     datos.notas = getNotas().filter(n => n.libroId !== libroId);
     return Promise.all(audios.map(id => borrarAudio(id).catch(() => { })));
+}
+
+// Tras sincronizar: borra audios y fotos que quedaron sin dueño en este equipo
+// (por ejemplo, si la nota o el libro se borraron desde otro equipo)
+async function limpiarArchivosHuerfanos() {
+    if (guardandoAudios > 0 || grabacion || !window.indexedDB) return;
+    try {
+        const datos = getDatosLibros();
+        const audiosVivos = new Set(getNotas()
+            .filter(n => n.audio && n.audio.equipo === getEquipo().id)
+            .map(n => n.audio.id));
+        const clavesAudio = await conAlmacen('readonly', almacen => almacen.getAllKeys(), 'audios');
+        if (guardandoAudios > 0 || grabacion) return;
+        for (const clave of clavesAudio) {
+            if (!audiosVivos.has(clave)) await borrarAudio(clave);
+        }
+
+        const librosVivos = new Set(datos.libros.map(l => l.id));
+        for (const libroId of [...conteoFotos.keys()]) {
+            if (!librosVivos.has(libroId)) await borrarFotosDeLibro(libroId);
+        }
+    } catch (e) { }
 }
 
 // ===== Textos =====
@@ -101,7 +126,11 @@ function notaHTML(nota) {
     }
 
     let audio = '';
-    if (nota.audio) {
+    if (nota.audio && nota.audio.equipo !== getEquipo().id) {
+        // Los audios no se sincronizan: se quedan en el equipo donde se grabaron
+        audio = `<p class="lib-vacio">🎙 Audio de ${textoDuracion(nota.audio.duracion)} guardado en otro equipo` +
+            `${nota.audio.equipoNombre ? ` (${esc(nota.audio.equipoNombre)})` : ''}.</p>`;
+    } else if (nota.audio) {
         const sonando = audioSonando && audioSonando.notaId === nota.id;
         audio = `
             <div class="nota-audio">
@@ -176,7 +205,7 @@ function avisarNotas(texto, esError) {
 function crearNota(libroId, texto, ref, audio) {
     const datos = getDatosLibros();
     getNotas().push({
-        id: datos.nextId++,
+        id: nuevoId(),
         libroId,
         fecha: formatearFechaISO(new Date()),
         ref: String(ref || '').trim(),
@@ -203,9 +232,21 @@ function duracionDeAudio(blob) {
 }
 
 async function crearNotaConAudio(libroId, blob, ref, duracion) {
+    guardandoAudios++;
+    try {
+        await crearNotaConAudioInterno(libroId, blob, ref, duracion);
+    } finally {
+        guardandoAudios--;
+    }
+}
+
+async function crearNotaConAudioInterno(libroId, blob, ref, duracion) {
     const id = await guardarAudio(libroId, blob);
     const segundos = duracion || await duracionDeAudio(blob);
-    crearNota(libroId, borradorNota, ref, { id, tipo: blob.type || 'audio/mp4', duracion: segundos, peso: blob.size });
+    crearNota(libroId, borradorNota, ref, {
+        id, tipo: blob.type || 'audio/mp4', duracion: segundos, peso: blob.size,
+        equipo: getEquipo().id, equipoNombre: getEquipo().nombre
+    });
     borradorNota = '';
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { });
 }
@@ -378,7 +419,7 @@ async function alHacerClicNotas(e) {
         } else if (accion === 'borrar') {
             if (!confirm('¿Borrar esta nota? No se puede deshacer.')) return;
             if (audioSonando && audioSonando.notaId === nota.id) soltarAudioSonando();
-            if (nota.audio) await borrarAudio(nota.audio.id).catch(() => { });
+            if (nota.audio && nota.audio.equipo === getEquipo().id) await borrarAudio(nota.audio.id).catch(() => { });
             getDatosLibros().notas = getNotas().filter(n => n.id !== nota.id);
             guardarDatosLibros();
             avisarNotas('Nota borrada.');

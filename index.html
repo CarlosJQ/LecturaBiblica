@@ -20,6 +20,7 @@
         <header class="app-header">
             <h1>📖 Mi Lectura Bíblica</h1>
             <p class="subtitle" id="current-date"></p>
+            <p class="sync-chip" id="sync-chip" hidden></p>
         </header>
 
         <!-- Pestañas -->
@@ -64,6 +65,12 @@
 
         <!-- Lectura de libros -->
         <div id="vista-libros" hidden></div>
+
+        <!-- Sincronización entre equipos -->
+        <details class="backup-section" id="sync-section">
+            <summary>🔄 Sincronización entre mis equipos</summary>
+            <div id="sync-body"></div>
+        </details>
 
         <!-- Respaldo de las lecturas marcadas -->
         <details class="backup-section" id="backup-section">
@@ -129,6 +136,7 @@
     <script src="libros.js"></script>
     <script src="fotos.js"></script>
     <script src="notas.js"></script>
+    <script src="sync.js"></script>
     <script src="config.js"></script>
 </body>
 

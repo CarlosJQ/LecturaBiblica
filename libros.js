@@ -25,6 +25,37 @@ let mensajeLibro = '';
 
 // ===== Datos =====
 
+const EQUIPO_KEY = 'lecturaBiblica_equipo';
+let equipoCache = null;
+let ultimoId = 0;
+
+// Identificadores únicos aunque se creen cosas en dos equipos a la vez
+function nuevoId() {
+    const id = Math.max(ultimoId + 1, Date.now() * 1000 + Math.floor(Math.random() * 1000));
+    ultimoId = id;
+    return id;
+}
+
+// Este equipo: sirve para saber en cuál quedó guardado cada audio
+function getEquipo() {
+    if (equipoCache) return equipoCache;
+    try {
+        equipoCache = JSON.parse(localStorage.getItem(EQUIPO_KEY));
+    } catch (e) { }
+    if (!equipoCache || !equipoCache.id) {
+        const ua = navigator.userAgent || '';
+        let nombre = 'Equipo';
+        if (/iPhone/.test(ua)) nombre = 'iPhone';
+        else if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) nombre = 'iPad';
+        else if (/Macintosh/.test(ua)) nombre = 'Mac';
+        equipoCache = { id: Math.random().toString(36).slice(2, 10), nombre };
+        try {
+            localStorage.setItem(EQUIPO_KEY, JSON.stringify(equipoCache));
+        } catch (e) { }
+    }
+    return equipoCache;
+}
+
 function getDatosLibros() {
     if (librosCache) return librosCache;
     let datos = null;
@@ -36,6 +67,13 @@ function getDatosLibros() {
         datos = { version: 1, nextId: 1, libros: [], registro: [] };
     }
     if (!Array.isArray(datos.notas)) datos.notas = [];
+    // Audios grabados antes de que existiera la sincronización: son de este equipo
+    datos.notas.forEach(nota => {
+        if (nota.audio && !nota.audio.equipo) {
+            nota.audio.equipo = getEquipo().id;
+            nota.audio.equipoNombre = getEquipo().nombre;
+        }
+    });
     if (!datos.nextId) {
         datos.nextId = Math.max(0, ...datos.libros.map(l => l.id), ...datos.registro.map(r => r.id),
             ...datos.notas.map(n => n.id)) + 1;
@@ -46,6 +84,7 @@ function getDatosLibros() {
 
 function guardarDatosLibros() {
     localStorage.setItem(LIBROS_KEY, JSON.stringify(getDatosLibros()));
+    notificarCambioLocal();
 }
 
 function libroPorId(id) {
@@ -90,7 +129,7 @@ function importarLibros(entrada) {
         const libro = normalizarLibro(original || {});
         if (!libro.titulo || existentes.has(claveLibro(libro))) continue;
         existentes.add(claveLibro(libro));
-        libro.id = datos.nextId++;
+        libro.id = nuevoId();
         nuevosIds.set(original.id, libro.id);
         datos.libros.push(libro);
         agregados++;
@@ -99,7 +138,7 @@ function importarLibros(entrada) {
     for (const r of Array.isArray(entrada.registro) ? entrada.registro : []) {
         if (!r || !nuevosIds.has(r.libroId) || !/^\d{4}-\d{2}-\d{2}$/.test(r.fecha)) continue;
         datos.registro.push({
-            id: datos.nextId++,
+            id: nuevoId(),
             libroId: nuevosIds.get(r.libroId),
             fecha: r.fecha,
             desde: entero(r.desde, 1),
@@ -115,7 +154,7 @@ function importarLibros(entrada) {
         const texto = String(n.texto || '').trim();
         if (!texto && !n.audio) continue;
         datos.notas.push({
-            id: datos.nextId++,
+            id: nuevoId(),
             libroId: nuevosIds.get(n.libroId),
             fecha: n.fecha,
             ref: String(n.ref || ''),
@@ -435,7 +474,7 @@ function guardarLectura(libro) {
 
     const datos = getDatosLibros();
     datos.registro.push({
-        id: datos.nextId++,
+        id: nuevoId(),
         libroId: libro.id,
         fecha,
         desde,
@@ -503,7 +542,7 @@ function guardarLibro() {
     if (existente) {
         Object.assign(existente, libro);
     } else {
-        libro.id = datos.nextId++;
+        libro.id = nuevoId();
         datos.libros.push(libro);
     }
     filtroBiblioteca = libro.estado;

@@ -149,6 +149,12 @@ const BLOQUES = [
 ];
 
 // ===== ALMACENAMIENTO LOCAL =====
+
+// Avisa a la sincronización (sync.js) de que algo cambió en este equipo
+function notificarCambioLocal() {
+    if (typeof alCambiarDatosLocales === 'function') alCambiarDatosLocales();
+}
+
 const STORAGE_KEY = 'lecturaBiblica_completadas';
 
 function getCompletadas() {
@@ -169,6 +175,7 @@ function setCompletada(fecha, bloqueId, completada) {
         delete completadas[key];
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(completadas));
+    notificarCambioLocal();
 }
 
 function isCompletada(fecha, bloqueId) {
@@ -432,6 +439,7 @@ function getPlanes() {
 function guardarPlanes(planes) {
     planesCache = planes;
     localStorage.setItem(PLANES_KEY, JSON.stringify(planes));
+    notificarCambioLocal();
 }
 
 function planValido(plan) {
@@ -982,6 +990,7 @@ function importarRespaldo(texto) {
         completadas[clave] = true;
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(completadas));
+    notificarCambioLocal();
 
     document.getElementById('backup-text').value = '';
     actualizarInfoRespaldo();
@@ -1034,6 +1043,7 @@ document.addEventListener('DOMContentLoaded', () => {
     iniciarRespaldo();
     iniciarConfigurador();
     iniciarLibros();
+    iniciarSync();
 
     document.getElementById('btn-prev').addEventListener('click', () => cambiarDia(-1));
     document.getElementById('btn-next').addEventListener('click', () => cambiarDia(1));

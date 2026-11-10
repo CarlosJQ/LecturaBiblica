@@ -108,8 +108,26 @@
         </div>
     </section>
 
+    <!-- Visor de fotos a pantalla completa -->
+    <section class="foto-visor" id="foto-visor" hidden aria-label="Foto de la página">
+        <header class="visor-barra">
+            <span id="visor-pos"></span>
+            <div class="visor-botones">
+                <button id="visor-zoom" class="nav-btn" type="button">Ampliar</button>
+                <button id="visor-borrar" class="nav-btn" type="button">Borrar</button>
+                <button id="visor-cerrar" class="nav-btn today-btn" type="button">Cerrar</button>
+            </div>
+        </header>
+        <div class="visor-lienzo" id="visor-lienzo"><img id="visor-img" alt="Página fotografiada"></div>
+        <footer class="visor-barra">
+            <button id="visor-ant" class="nav-btn" type="button">‹ Anterior</button>
+            <button id="visor-sig" class="nav-btn" type="button">Siguiente ›</button>
+        </footer>
+    </section>
+
     <script src="app.js"></script>
     <script src="libros.js"></script>
+    <script src="fotos.js"></script>
     <script src="config.js"></script>
 </body>
 

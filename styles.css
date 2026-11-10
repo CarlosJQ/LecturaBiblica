@@ -932,6 +932,118 @@ body.config-abierto {
     color: var(--text-primary);
 }
 
+/* ===== Fotos de páginas ===== */
+.foto-indicador {
+    margin-left: 6px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--accent-gold);
+    white-space: nowrap;
+}
+
+.foto-grilla {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.foto-mini {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    padding: 0;
+    background: var(--bg-primary);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.foto-mini img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.foto-mini span {
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
+    padding: 0 6px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.65rem;
+}
+
+.foto-visor {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+}
+
+.foto-visor[hidden] {
+    display: none;
+}
+
+.visor-barra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+header.visor-barra {
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+}
+
+footer.visor-barra {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+.visor-botones {
+    display: flex;
+    gap: 6px;
+}
+
+.visor-barra .nav-btn:disabled {
+    opacity: 0.35;
+}
+
+.visor-lienzo {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    align-items: flex-start;
+}
+
+.visor-lienzo img {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: auto;
+}
+
+.visor-lienzo.ampliado {
+    display: block;
+}
+
+.visor-lienzo.ampliado img {
+    width: 220%;
+    max-width: none;
+    margin: 0;
+}
+
 /* ===== Respaldo ===== */
 .backup-section {
     margin-top: 12px;

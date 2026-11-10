@@ -201,7 +201,7 @@ function semanaHTML() {
             }
             return `
                 <button type="button" class="lib-item" data-libro="${libro.id}">
-                    <span class="lib-titulo">${esc(libro.titulo)}</span>
+                    <span class="lib-titulo">${esc(libro.titulo)}${indicadorFotos(libro.id)}</span>
                     <span class="lib-autor">${esc(libro.autor)}</span>
                     ${estado}
                 </button>`;
@@ -244,7 +244,7 @@ function listaBibliotecaHTML() {
         if (avance) detalles.push(avance);
         return `
             <button type="button" class="lib-item" data-libro="${libro.id}">
-                <span class="lib-titulo">${esc(libro.titulo)}</span>
+                <span class="lib-titulo">${esc(libro.titulo)}${indicadorFotos(libro.id)}</span>
                 <span class="lib-autor">${esc(libro.autor)}</span>
                 ${detalles.length ? `<span class="lib-toca">${esc(detalles.join(' · '))}</span>` : ''}
             </button>`;
@@ -323,6 +323,8 @@ function panelLecturaHTML(libro) {
 
         <p class="backup-status" role="status" aria-live="polite">${esc(mensajeLibro)}</p>
 
+        <div class="cfg-sec" id="fotos-seccion"></div>
+
         <div class="cfg-sec">
             <h3 class="lib-h3">Historial</h3>
             ${filas ? `<ul class="lib-historial">${filas}</ul>` : '<p class="lib-vacio">Todavía no hay lecturas registradas.</p>'}
@@ -374,6 +376,7 @@ function renderizarPanelLibro() {
     document.getElementById('libro-panel-titulo').textContent = libro ? libro.titulo : 'Nuevo libro';
     document.getElementById('libro-body').innerHTML =
         panelLibro.modo === 'lectura' && libro ? panelLecturaHTML(libro) : panelEditarHTML(libro);
+    if (panelLibro.modo === 'lectura' && libro) renderizarFotos(libro.id);
 }
 
 function abrirPanelLibro(id) {
@@ -404,7 +407,7 @@ function guardarLectura(libro) {
 
     if (!desde || !hasta || hasta < desde || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
         mensajeLibro = 'Revisa los números: "hasta" no puede ser menor que "desde", y la fecha debe estar completa.';
-        return;
+        return false;
     }
 
     const datos = getDatosLibros();
@@ -428,6 +431,7 @@ function guardarLectura(libro) {
         mensajeLibro += ' ¡Terminaste el libro! Pasó a "Terminados".';
     }
     guardarDatosLibros();
+    return true;
 }
 
 function borrarRegistro(libro, idRegistro) {
@@ -494,7 +498,11 @@ function alHacerClicPanelLibro(e) {
     } else if (boton) {
         const accion = boton.dataset.acc;
         if (accion === 'guardar-lectura' && libro) {
-            guardarLectura(libro);
+            if (guardarLectura(libro)) {
+                renderizarPanelLibro();
+                ofrecerBorrarFotos(libro);
+                return;
+            }
         } else if (accion === 'editar') {
             panelLibro.modo = 'editar';
             mensajeLibro = '';
@@ -509,6 +517,7 @@ function alHacerClicPanelLibro(e) {
             datos.libros = datos.libros.filter(l => l.id !== libro.id);
             datos.registro = datos.registro.filter(r => r.libroId !== libro.id);
             guardarDatosLibros();
+            borrarFotosDeLibro(libro.id).catch(() => { });
             cerrarPanelLibro();
             return;
         }
@@ -568,4 +577,5 @@ function iniciarLibros() {
         vistaInicial = localStorage.getItem(VISTA_KEY) || 'biblia';
     } catch (e) { }
     mostrarVista(vistaInicial);
+    iniciarFotos();
 }

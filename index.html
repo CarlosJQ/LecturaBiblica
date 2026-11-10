@@ -22,6 +22,13 @@
             <p class="subtitle" id="current-date"></p>
         </header>
 
+        <!-- Pestañas -->
+        <nav class="tabs" aria-label="Secciones">
+            <button id="tab-biblia" class="tab active" type="button" aria-pressed="true">📖 Biblia</button>
+            <button id="tab-libros" class="tab" type="button" aria-pressed="false">📚 Libros</button>
+        </nav>
+
+        <div id="vista-biblia">
         <!-- Navegación de fecha -->
         <nav class="date-nav">
             <button id="btn-prev" class="nav-btn" aria-label="Día anterior">
@@ -53,6 +60,10 @@
         </footer>
 
         <button id="btn-config" class="config-open-btn" type="button">⚙️ Configurar plan de lectura</button>
+        </div>
+
+        <!-- Lectura de libros -->
+        <div id="vista-libros" hidden></div>
 
         <!-- Respaldo de las lecturas marcadas -->
         <details class="backup-section" id="backup-section">
@@ -86,7 +97,19 @@
         </div>
     </section>
 
+    <!-- Ficha de un libro: marcar lectura, historial y edición -->
+    <section class="config-panel" id="libro-panel" hidden aria-label="Libro">
+        <div class="config-inner">
+            <header class="config-header">
+                <h2 id="libro-panel-titulo">📚 Libro</h2>
+                <button id="btn-libro-close" class="nav-btn" type="button">Cerrar</button>
+            </header>
+            <div id="libro-body"></div>
+        </div>
+    </section>
+
     <script src="app.js"></script>
+    <script src="libros.js"></script>
     <script src="config.js"></script>
 </body>
 

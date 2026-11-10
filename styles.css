@@ -689,6 +689,249 @@ body.config-abierto {
     cursor: pointer;
 }
 
+/* ===== Pestañas ===== */
+.tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 4px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.tab {
+    flex: 1;
+    min-height: 40px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.tab.active {
+    background: var(--bg-card-hover);
+    color: var(--accent-gold);
+}
+
+/* ===== Libros ===== */
+.lib-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 14px;
+    margin-bottom: 12px;
+}
+
+.lib-card h2 {
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.lib-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.lib-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.lib-dia {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.lib-dia-nombre {
+    flex: 0 0 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 8px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.lib-dia-nombre span {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.lib-dia.hoy .lib-dia-nombre,
+.lib-dia.hoy .lib-dia-nombre span {
+    color: var(--accent-gold);
+}
+
+.lib-dia-cuerpo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lib-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    width: 100%;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.lib-dia.hoy .lib-item {
+    border-color: rgba(255, 215, 0, 0.5);
+}
+
+#lib-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lib-titulo {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.lib-autor {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.lib-toca {
+    margin-top: 3px;
+    font-size: 0.78rem;
+    color: var(--accent-blue);
+}
+
+.lib-toca.leido {
+    color: var(--accent-green);
+}
+
+.lib-vacio {
+    padding: 8px 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.lib-filtros {
+    margin-bottom: 10px;
+}
+
+.lib-buscar {
+    width: 100%;
+    min-height: 40px;
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    background: var(--bg-primary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 16px;
+}
+
+.lib-ficha-autor {
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.lib-ficha-toca {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent-gold);
+    margin-bottom: 10px;
+}
+
+.lib-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.lib-form.dos {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.lib-form input,
+.lib-form select {
+    width: 100%;
+}
+
+.config-panel input[type="number"] {
+    min-height: 40px;
+    padding: 6px 10px;
+    background: var(--bg-primary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 16px;
+}
+
+.config-panel label.lib-check {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+}
+
+.lib-check input {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    accent-color: var(--accent-gold);
+}
+
+.lib-ancho {
+    width: 100%;
+}
+
+.lib-h3 {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.lib-historial {
+    list-style: none;
+}
+
+.lib-historial li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.8rem;
+}
+
+.lib-historial strong {
+    color: var(--text-primary);
+}
+
 /* ===== Respaldo ===== */
 .backup-section {
     margin-top: 12px;

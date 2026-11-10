@@ -869,7 +869,8 @@ function crearTextoRespaldo() {
         version: 1,
         exportado: new Date().toISOString(),
         completadas: getCompletadas(),
-        planes: getPlanes()
+        planes: getPlanes(),
+        libros: getDatosLibros()
     });
 }
 
@@ -881,8 +882,10 @@ function mostrarEstadoRespaldo(mensaje, esError) {
 
 function actualizarInfoRespaldo() {
     const total = Object.keys(getCompletadas()).length;
+    const libros = getDatosLibros().libros.length;
     document.getElementById('backup-info').textContent =
-        `Tienes ${total} ${total === 1 ? 'lectura marcada' : 'lecturas marcadas'} en este dispositivo.`;
+        `Tienes ${total} ${total === 1 ? 'lectura bíblica marcada' : 'lecturas bíblicas marcadas'} y ` +
+        `${libros} ${libros === 1 ? 'libro' : 'libros'} en este dispositivo. El respaldo incluye todo.`;
 }
 
 async function exportarArchivo() {
@@ -962,9 +965,12 @@ function importarRespaldo(texto) {
         if (planesNuevos > 0) guardarPlanes(planes);
     }
 
+    // Libros: se agregan los que aquí no existen, con su historial
+    const librosNuevos = importarLibros(datos.libros);
+
     const claves = Object.keys(origen).filter(clave => CLAVE_VALIDA.test(clave) && origen[clave]);
-    if (claves.length === 0 && planesNuevos === 0) {
-        mostrarEstadoRespaldo('El respaldo no contiene lecturas marcadas.', true);
+    if (claves.length === 0 && planesNuevos === 0 && librosNuevos === 0) {
+        mostrarEstadoRespaldo('El respaldo no contiene nada nuevo para agregar.', true);
         return;
     }
 
@@ -982,7 +988,8 @@ function importarRespaldo(texto) {
     generarCalendario();
     renderizarLecturas();
     mostrarEstadoRespaldo(`Listo: el respaldo tenía ${claves.length} lectura(s); se agregaron ${nuevas} nueva(s)` +
-        (planesNuevos > 0 ? ` y ${planesNuevos} plan(es) de lectura.` : '.'));
+        (planesNuevos > 0 ? `, ${planesNuevos} plan(es) de lectura` : '') +
+        (librosNuevos > 0 ? `, ${librosNuevos} libro(s)` : '') + '.');
 }
 
 function iniciarRespaldo() {
@@ -1026,6 +1033,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderizarLecturas();
     iniciarRespaldo();
     iniciarConfigurador();
+    iniciarLibros();
 
     document.getElementById('btn-prev').addEventListener('click', () => cambiarDia(-1));
     document.getElementById('btn-next').addEventListener('click', () => cambiarDia(1));

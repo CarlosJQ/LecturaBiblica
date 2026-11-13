@@ -998,7 +998,7 @@ function importarRespaldo(texto) {
     renderizarLecturas();
     mostrarEstadoRespaldo(`Listo: el respaldo tenía ${claves.length} lectura(s); se agregaron ${nuevas} nueva(s)` +
         (planesNuevos > 0 ? `, ${planesNuevos} plan(es) de lectura` : '') +
-        (librosNuevos > 0 ? `, ${librosNuevos} libro(s)` : '') + '.');
+        (librosNuevos > 0 ? `, ${librosNuevos} libro(s) agregados o actualizados` : '') + '.');
 }
 
 function iniciarRespaldo() {

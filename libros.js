@@ -127,7 +127,8 @@ function claveLibro(libro) {
     return `${libro.titulo}|${libro.autor}`.toLowerCase();
 }
 
-// Agrega los libros de un respaldo que aquí no existen (mismo título y autor = ya existe)
+// Agrega los libros de un respaldo que aquí no existen (mismo título y autor = ya existe).
+// Devuelve cuántos libros agregó o reconfiguró.
 function importarLibros(entrada) {
     if (!entrada || !Array.isArray(entrada.libros)) return 0;
     const datos = getDatosLibros();
@@ -136,8 +137,20 @@ function importarLibros(entrada) {
     let agregados = 0;
 
     for (const original of entrada.libros) {
-        const libro = normalizarLibro(original || {});
-        if (!libro.titulo || existentes.has(claveLibro(libro))) continue;
+        const { actualizar, ...sinMarca } = original || {};
+        const libro = normalizarLibro(sinMarca);
+        if (!libro.titulo) continue;
+
+        if (existentes.has(claveLibro(libro))) {
+            // El archivo puede pedir que se reconfigure un libro que ya existe (cuándo se lee, ritmo, total),
+            // pero solo si todavía no tiene lecturas anotadas: nunca se pisa un avance real
+            const actual = datos.libros.find(l => claveLibro(l) === claveLibro(libro));
+            if (actualizar && actual && !datos.registro.some(r => r.libroId === actual.id)) {
+                Object.assign(actual, normalizarLibro({ ...actual, ...sinMarca, id: actual.id }));
+                agregados++;
+            }
+            continue;
+        }
         existentes.add(claveLibro(libro));
         libro.id = nuevoId();
         nuevosIds.set(original.id, libro.id);

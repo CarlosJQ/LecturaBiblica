@@ -932,6 +932,94 @@ body.config-abierto {
     color: var(--text-primary);
 }
 
+/* ===== Navegación de semanas y días, lecturas diarias ===== */
+.lib-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 10px;
+}
+
+.lib-nav .nav-btn {
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 1.1rem;
+}
+
+.lib-nav .today-btn {
+    font-size: 0.8rem;
+}
+
+.lib-nav-titulo {
+    flex: 1;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.3;
+}
+
+.lib-nav-titulo strong {
+    font-size: 0.9rem;
+    color: var(--accent-gold);
+}
+
+.lib-toca.futuro {
+    color: var(--text-secondary);
+}
+
+.lib-toca.falto {
+    color: var(--text-muted);
+}
+
+.lib-destino {
+    margin: -4px 0 10px;
+    font-size: 0.8rem;
+    color: var(--accent-blue);
+}
+
+.diaria {
+    padding: 10px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.diaria-cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.diaria-nombre {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.racha {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.racha strong {
+    margin-left: 4px;
+    color: var(--accent-green);
+}
+
+.racha-punto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.racha-punto.ok {
+    background: var(--accent-green);
+}
+
 /* ===== Fotos de páginas ===== */
 .foto-indicador {
     margin-left: 6px;

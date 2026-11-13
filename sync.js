@@ -15,6 +15,7 @@ const SYNC_T_KEY = 'lecturaBiblica_syncT';          // hora del último cambio d
 const SYNC_ULTIMA_KEY = 'lecturaBiblica_syncUltima';
 const SYNC_ARCHIVO = 'datos.json';
 const SYNC_API = 'https://api.github.com';
+const SYNC_FORMATO = 2;      // sube cuando cambia la forma de los datos
 const COLECCIONES = ['marcas', 'planes', 'libros', 'registro', 'notas'];
 
 let syncT = null;            // { coleccion: { id: hora } }
@@ -141,7 +142,18 @@ function limpiarRemoto(datos) {
     return limpio;
 }
 
-// Gana el cambio más reciente de cada elemento; en empate se queda lo de este equipo
+// Con la misma hora y contenido distinto, todos los equipos deben elegir lo mismo:
+// gana el contenido más completo (así no se pierden campos que un equipo viejo no conocía)
+function elegirMasReciente(l, r) {
+    if (r.t !== l.t) return r.t > l.t ? r : l;
+    const tl = JSON.stringify(l.d);
+    const tr = JSON.stringify(r.d);
+    if (tl === tr) return l;
+    if (tl.length !== tr.length) return tr.length > tl.length ? r : l;
+    return tr > tl ? r : l;
+}
+
+// Gana el cambio más reciente de cada elemento
 function fusionar(local, remoto) {
     const resultado = {};
     for (const col of COLECCIONES) {
@@ -150,7 +162,7 @@ function fusionar(local, remoto) {
         for (const id of ids) {
             const l = local[col][id];
             const r = remoto[col][id];
-            resultado[col][id] = !l ? r : (!r ? l : (r.t > l.t ? r : l));
+            resultado[col][id] = !l ? r : (!r ? l : elegirMasReciente(l, r));
         }
     }
     return resultado;
@@ -271,13 +283,16 @@ async function leerRemoto(cfg) {
     } catch (e) {
         throw errorSync('El archivo de datos del repositorio está dañado.');
     }
+    if (Number(archivo.formato) > SYNC_FORMATO) {
+        throw errorSync('Otro de tus equipos usa una versión más nueva de la app. Cierra la app en este equipo y vuelve a abrirla con internet para actualizarla.', 'version');
+    }
     return { sha: info.sha, datos: limpiarRemoto(archivo.datos) };
 }
 
 async function escribirRemoto(cfg, estado, sha) {
     const archivo = {
         app: 'lecturaBiblica',
-        formato: 1,
+        formato: SYNC_FORMATO,
         actualizado: new Date().toISOString(),
         equipo: getEquipo().nombre,
         datos: estado

@@ -123,6 +123,11 @@ function normalizarLibro(libro) {
     };
 }
 
+// Total para calcular avance y fin: el que se indicó o, si se lee por páginas, las páginas del libro
+function totalDe(libro) {
+    return libro.total || (libro.unidad === 'página' ? libro.paginas : null) || null;
+}
+
 function claveLibro(libro) {
     return `${libro.titulo}|${libro.autor}`.toLowerCase();
 }
@@ -202,7 +207,7 @@ function textoTramo(libro, desde, hasta) {
 }
 
 function tramoSiguiente(libro) {
-    const tope = libro.total || Infinity;
+    const tope = totalDe(libro) || Infinity;
     const desde = libro.siguiente;
     const hasta = Math.max(desde, Math.min(tope, desde + libro.ritmo - 1));
     return { desde, hasta };
@@ -229,10 +234,10 @@ function textoRegistro(libro, r) {
 
 function textoAvance(libro) {
     const partes = [];
-    if (libro.total) {
-        const hechos = Math.min(libro.total, libro.siguiente - 1);
+    if (totalDe(libro)) {
+        const hechos = Math.min(totalDe(libro), libro.siguiente - 1);
         const plural = (UNIDADES[libro.unidad] || UNIDADES['capítulo'])[2];
-        partes.push(`${Math.round(hechos / libro.total * 100)}% · ${hechos} de ${libro.total} ${plural}`);
+        partes.push(`${Math.round(hechos / totalDe(libro) * 100)}% · ${hechos} de ${totalDe(libro)} ${plural}`);
     }
     if (libro.paginas && libro.unidad !== 'página') partes.push(`${libro.paginas} páginas`);
     return partes.join(' · ');
@@ -273,8 +278,8 @@ function textoLeido(libro, leidos) {
 
 // Sesiones que le quedan a un libro (infinitas si no se sabe el total)
 function sesionesRestantes(libro) {
-    if (!libro.total) return Infinity;
-    return Math.max(0, Math.ceil((libro.total - libro.siguiente + 1) / libro.ritmo));
+    if (!totalDe(libro)) return Infinity;
+    return Math.max(0, Math.ceil((totalDe(libro) - libro.siguiente + 1) / libro.ritmo));
 }
 
 // Qué tocará después de "saltos" sesiones todavía pendientes.
@@ -285,8 +290,8 @@ function proyectar(libro, saltos) {
     const desde = libro.aMedias
         ? libro.siguiente + 1 + libro.ritmo * (saltos - 1)
         : libro.siguiente + libro.ritmo * saltos;
-    if (libro.total && desde > libro.total) return { terminado: true };
-    return { desde, hasta: Math.min(libro.total || Infinity, desde + libro.ritmo - 1) };
+    if (totalDe(libro) && desde > totalDe(libro)) return { terminado: true };
+    return { desde, hasta: Math.min(totalDe(libro) || Infinity, desde + libro.ritmo - 1) };
 }
 
 function textoProyeccion(libro, p) {
@@ -673,7 +678,8 @@ function panelEditarHTML(libro) {
                 <span>Lo próximo ya está empezado (quedó a medias)</span></label>
             <label class="lib-check"><input type="checkbox" id="ed-variable" ${l.variable ? 'checked' : ''}>
                 <span>El avance varía: lo defino cada vez (no adelantar semanas futuras)</span></label>
-            <p class="cfg-hint">"Total" permite calcular cuándo terminas. Si varios libros comparten la mañana o la noche,
+            <p class="cfg-hint">Para que aparezca en tus lecturas, el estado debe ser "Leyendo" (se pone solo al elegir cuándo lo lees).
+                "Total" permite calcular cuándo terminas; si lees por páginas y lo dejas vacío, se usan las páginas del libro. Si varios libros comparten la mañana o la noche,
                 se leen uno tras otro según el orden en la cola.</p>
         </div>
         <p class="backup-status error" role="status" aria-live="polite">${esc(mensajeLibro)}</p>
@@ -759,9 +765,9 @@ function guardarLectura(libro) {
     }
     mensajeLibro = `Guardado: ${textoTramo(libro, desde, hasta)}${aMedias ? ' (a medias)' : ''}.`;
 
-    if (libro.total && libro.siguiente > libro.total) {
+    if (totalDe(libro) && libro.siguiente > totalDe(libro)) {
         libro.estado = 'terminado';
-        libro.siguiente = libro.total + 1;
+        libro.siguiente = totalDe(libro) + 1;
         mensajeLibro += ' ¡Terminaste el libro! Pasó a "Terminados".';
     }
     guardarDatosLibros();
@@ -942,6 +948,13 @@ function iniciarLibros() {
 
     const vista = document.getElementById('vista-libros');
     vista.addEventListener('click', alHacerClicLibros);
+
+    // Al elegir cuándo se lee un libro pendiente, pasa solo a "Leyendo" (si no, no aparecería en las lecturas)
+    document.getElementById('libro-body').addEventListener('change', (e) => {
+        if (e.target.id !== 'ed-dia' || !e.target.value) return;
+        const estado = document.getElementById('ed-estado');
+        if (estado && estado.value === 'pendiente') estado.value = 'leyendo';
+    });
     iniciarDeslizarLibros(vista);
     vista.addEventListener('input', (e) => {
         if (e.target.id !== 'lib-buscar') return;
